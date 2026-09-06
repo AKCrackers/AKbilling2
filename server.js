@@ -184,9 +184,10 @@ if (db.prepare('SELECT COUNT(*) AS count FROM products').get().count === 0) {
   db.exec('BEGIN');
   try { seedProducts.forEach((product) => insert.run(...product)); db.exec('COMMIT'); } catch (error) { db.exec('ROLLBACK'); throw error; }
 }
-const importPdfProduct = db.prepare('INSERT OR IGNORE INTO products (name, category, sku, price, stock, reorder_level) VALUES (?, ?, ?, ?, 0, 5)');
+const importPdfProduct = db.prepare('INSERT OR IGNORE INTO products (name, category, sku, price, stock, reorder_level) VALUES (?, ?, ?, ?, 0, 30)');
 pdfProducts.forEach((product) => importPdfProduct.run(...product));
 additionalPdfProducts.forEach((product) => importPdfProduct.run(...product));
+db.exec('UPDATE products SET reorder_level = 30 WHERE reorder_level < 30');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('Lunik Rocket', 'Rockets', 120, 'PDF-025');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('1/2KG Paper Bomb', 'Rugged Bombs', 120, 'PDF-029');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('12 Step 3D', 'Sky Collections', 450, 'PDF-053');
@@ -219,7 +220,7 @@ app.post('/api/products', (req, res) => {
   const { name, category, sku, price, stock, reorderLevel } = req.body;
   if (!name || !sku || !Number.isFinite(Number(price)) || !Number.isInteger(Number(stock))) return res.status(400).json({ error: 'Name, SKU, price, and stock are required.' });
   try {
-    const result = db.prepare('INSERT INTO products (name, category, sku, price, stock, reorder_level, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)').run(String(name).trim(), String(category || 'Crackers').trim(), String(sku).trim().toUpperCase(), Number(price), Number(stock), Number(reorderLevel || 10));
+    const result = db.prepare('INSERT INTO products (name, category, sku, price, stock, reorder_level, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)').run(String(name).trim(), String(category || 'Crackers').trim(), String(sku).trim().toUpperCase(), Number(price), Number(stock), Math.max(30, Number(reorderLevel) || 30));
     res.status(201).json(db.prepare(`${productSelect} WHERE id = ?`).get(result.lastInsertRowid));
   } catch (error) { res.status(400).json({ error: error.code === 'SQLITE_CONSTRAINT_UNIQUE' ? 'That SKU already exists.' : 'Could not save the product.' }); }
 });
@@ -228,7 +229,7 @@ app.put('/api/products/:id', (req, res) => {
   const { name, category, sku, price, stock, reorderLevel } = req.body;
   if (!name || !sku || !Number.isFinite(Number(price)) || !Number.isInteger(Number(stock))) return res.status(400).json({ error: 'Name, SKU, price, and stock are required.' });
   try {
-    const result = db.prepare('UPDATE products SET name = ?, category = ?, sku = ?, price = ?, stock = ?, reorder_level = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(String(name).trim(), String(category || 'Crackers').trim(), String(sku).trim().toUpperCase(), Number(price), Number(stock), Number(reorderLevel || 10), Number(req.params.id));
+    const result = db.prepare('UPDATE products SET name = ?, category = ?, sku = ?, price = ?, stock = ?, reorder_level = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(String(name).trim(), String(category || 'Crackers').trim(), String(sku).trim().toUpperCase(), Number(price), Number(stock), Math.max(30, Number(reorderLevel) || 30), Number(req.params.id));
     if (!result.changes) return res.status(404).json({ error: 'Product not found.' });
     res.json(db.prepare(`${productSelect} WHERE id = ?`).get(req.params.id));
   } catch (error) { res.status(400).json({ error: error.code === 'SQLITE_CONSTRAINT_UNIQUE' ? 'That SKU already exists.' : 'Could not update the product.' }); }
@@ -254,6 +255,15 @@ app.get('/api/bills/:id', (req, res) => {
   if (!bill) return res.status(404).json({ error: 'Bill not found.' });
   bill.items = db.prepare('SELECT product_id AS productId, product_name AS productName, quantity, price, line_total AS lineTotal FROM bill_items WHERE bill_id = ?').all(bill.id);
   res.json(bill);
+});
+
+app.put('/api/bills/:id/customer', (req, res) => {
+  const customerName = String(req.body.customerName || '').trim();
+  const customerPhone = String(req.body.customerPhone || '').trim();
+  if (!customerName) return res.status(400).json({ error: 'Customer name is required.' });
+  const result = db.prepare('UPDATE bills SET customer_name = ?, customer_phone = ? WHERE id = ?').run(customerName, customerPhone, Number(req.params.id));
+  if (!result.changes) return res.status(404).json({ error: 'Bill not found.' });
+  res.json({ id: Number(req.params.id), customerName, customerPhone });
 });
 
 app.post('/api/bills', (req, res) => {
