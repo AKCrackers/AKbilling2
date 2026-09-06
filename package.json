@@ -1,0 +1,16 @@
+{
+  "name": "cracker-shop-billing",
+  "version": "1.0.0",
+  "description": "Billing and inventory management for a crackers shop",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

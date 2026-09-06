@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ak-crackers-billing
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: billing-data
+      mountPath: /var/data
+      sizeGB: 1

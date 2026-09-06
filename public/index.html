@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AK Crackers | Billing Desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/premium.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">AK</span><div><strong>AK Crackers</strong><small>Billing desk</small></div></div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">◈</span>Overview</button>
+        <button class="nav-item" data-view="billing"><span class="nav-icon">▤</span>New bill</button>
+        <button class="nav-item" data-view="inventory"><span class="nav-icon">▦</span>Inventory</button>
+        <button class="nav-item" data-view="bills"><span class="nav-icon">◫</span>Saved bills</button>
+      </nav>
+      <div class="sidebar-footer"><span class="status-dot"></span><span>Local database connected</span></div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar"><div><p class="eyebrow" id="page-eyebrow">Operations / Today</p><h1 id="page-title">Good morning, shopkeeper.</h1></div><div class="topbar-date" id="current-date"></div></header>
+      <div id="toast" class="toast" role="status"></div>
+      <section id="view-overview" class="view active-view"></section>
+      <section id="view-billing" class="view"></section>
+      <section id="view-inventory" class="view"></section>
+      <section id="view-bills" class="view"></section>
+    </main>
+  </div>
+  <div id="modal-root"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
