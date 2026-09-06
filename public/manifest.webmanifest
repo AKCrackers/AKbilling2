@@ -1,0 +1,9 @@
+{
+  "name": "AK Crackers Billing",
+  "short_name": "AK Billing",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f6f1",
+  "theme_color": "#123f39",
+  "description": "Mobile billing and inventory desk for AK Crackers"
+}
