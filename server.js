@@ -205,6 +205,7 @@ db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?'
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('1/2KG Paper Bomb', 'Rugged Bombs', 120, 'PDF-029');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('12 Step 3D', 'Sky Collections', 450, 'PDF-053');
 db.prepare("UPDATE products SET active = 0 WHERE sku IN ('FP-001', 'SP-012', 'SW-1000', 'CH-002', 'CS-003', 'RK-005')").run();
+db.prepare("UPDATE products SET active = 0 WHERE sku IN ('PDF-029', 'PDF-028', 'PDF-046', 'SW-1000', 'PDF-058', 'PDF-118')").run();
 const starterRefill = db.prepare('SELECT value FROM app_meta WHERE key = ?').get('starter_stock_100_initialized');
 if (!starterRefill) {
   db.exec('UPDATE products SET stock = 100, updated_at = CURRENT_TIMESTAMP');
