@@ -10,6 +10,10 @@ fs.mkdirSync(dataDir, { recursive: true });
 const db = new DatabaseSync(path.join(dataDir, 'billing.sqlite'));
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 db.exec(`
+  CREATE TABLE IF NOT EXISTS app_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -191,6 +195,11 @@ db.exec('UPDATE products SET reorder_level = 30 WHERE reorder_level < 30');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('Lunik Rocket', 'Rockets', 120, 'PDF-025');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('1/2KG Paper Bomb', 'Rugged Bombs', 120, 'PDF-029');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('12 Step 3D', 'Sky Collections', 450, 'PDF-053');
+const starterRefill = db.prepare('SELECT value FROM app_meta WHERE key = ?').get('starter_stock_100_initialized');
+if (!starterRefill) {
+  db.exec('UPDATE products SET stock = 100, updated_at = CURRENT_TIMESTAMP');
+  db.prepare('INSERT INTO app_meta (key, value) VALUES (?, ?)').run('starter_stock_100_initialized', new Date().toISOString());
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
