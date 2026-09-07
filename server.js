@@ -195,6 +195,7 @@ db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?'
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/price-list', (req, res) => res.sendFile(path.join(__dirname, 'price-list.pdf')));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', dataDir, database: path.join(dataDir, 'billing.sqlite') }));
 const productSelect = 'SELECT id, name, category, sku, price, stock, reorder_level AS reorderLevel, updated_at AS updatedAt FROM products';
 
 app.get('/api/dashboard', (req, res) => {
@@ -303,4 +304,4 @@ app.post('/api/bills', (req, res) => {
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.listen(PORT, () => console.log(`AK Crackers Billing running on port ${PORT}`));
+app.listen(PORT, () => console.log(`AK Crackers Billing running on port ${PORT} using ${dataDir}`));
