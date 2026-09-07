@@ -54,6 +54,7 @@ db.exec(`
     line_total REAL NOT NULL
   );
 `);
+try { db.exec('ALTER TABLE products ADD COLUMN active INTEGER NOT NULL DEFAULT 1'); } catch (error) { if (!String(error.message).includes('duplicate column name')) throw error; }
 const seedProducts = [
   ['Flower Pots', 'Ground Spinners', 'FP-001', 120, 36, 10],
   ['Sparklers 12 inch', 'Sparklers', 'SP-012', 80, 64, 15],
@@ -203,6 +204,7 @@ db.exec('UPDATE products SET reorder_level = 30 WHERE reorder_level < 30');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('Lunik Rocket', 'Rockets', 120, 'PDF-025');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('1/2KG Paper Bomb', 'Rugged Bombs', 120, 'PDF-029');
 db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?').run('12 Step 3D', 'Sky Collections', 450, 'PDF-053');
+db.prepare("UPDATE products SET active = 0 WHERE sku IN ('FP-001', 'SP-012', 'SW-1000', 'CH-002', 'CS-003', 'RK-005')").run();
 const starterRefill = db.prepare('SELECT value FROM app_meta WHERE key = ?').get('starter_stock_100_initialized');
 if (!starterRefill) {
   db.exec('UPDATE products SET stock = 100, updated_at = CURRENT_TIMESTAMP');
@@ -218,13 +220,13 @@ app.get('/api/qr/:type', async (req, res) => {
   try { res.type('png').send(await QRCode.toBuffer(value, { width: 240, margin: 1, errorCorrectionLevel: 'M' })); }
   catch (error) { res.status(500).json({ error: 'Could not create QR code.' }); }
 });
-const productSelect = 'SELECT id, name, category, sku, price, stock, reorder_level AS reorderLevel, updated_at AS updatedAt FROM products';
+const productSelect = 'SELECT id, name, category, sku, price, stock, reorder_level AS reorderLevel, updated_at AS updatedAt FROM products WHERE active = 1';
 
 app.get('/api/dashboard', (req, res) => {
   const totals = db.prepare(`SELECT
-    (SELECT COUNT(*) FROM products) AS productCount,
-    (SELECT COALESCE(SUM(stock), 0) FROM products) AS stockUnits,
-    (SELECT COUNT(*) FROM products WHERE stock <= reorder_level) AS lowStockCount,
+    (SELECT COUNT(*) FROM products WHERE active = 1) AS productCount,
+    (SELECT COALESCE(SUM(stock), 0) FROM products WHERE active = 1) AS stockUnits,
+    (SELECT COUNT(*) FROM products WHERE active = 1 AND stock <= reorder_level) AS lowStockCount,
     (SELECT COALESCE(SUM(total), 0) FROM bills WHERE date(created_at) = date('now', 'localtime')) AS todaySales,
     (SELECT COUNT(*) FROM bills WHERE date(created_at) = date('now', 'localtime')) AS todayBills`).get();
   const recentBills = db.prepare('SELECT id, bill_number AS billNumber, customer_name AS customerName, total, created_at AS createdAt FROM bills ORDER BY id DESC LIMIT 6').all();
@@ -234,7 +236,7 @@ app.get('/api/dashboard', (req, res) => {
 app.get('/api/products', (req, res) => {
   const search = String(req.query.search || '').trim();
   const products = search
-    ? db.prepare(`${productSelect} WHERE name LIKE ? OR sku LIKE ? OR category LIKE ? ORDER BY name`).all(`%${search}%`, `%${search}%`, `%${search}%`)
+    ? db.prepare(`${productSelect} AND (name LIKE ? OR sku LIKE ? OR category LIKE ?) ORDER BY name`).all(`%${search}%`, `%${search}%`, `%${search}%`)
     : db.prepare(`${productSelect} ORDER BY name`).all();
   res.json(products);
 });
@@ -244,7 +246,7 @@ app.post('/api/products', (req, res) => {
   if (!name || !sku || !Number.isFinite(Number(price)) || !Number.isInteger(Number(stock))) return res.status(400).json({ error: 'Name, SKU, price, and stock are required.' });
   try {
     const result = db.prepare('INSERT INTO products (name, category, sku, price, stock, reorder_level, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)').run(String(name).trim(), String(category || 'Crackers').trim(), String(sku).trim().toUpperCase(), Number(price), Number(stock), Math.max(30, Number(reorderLevel) || 30));
-    res.status(201).json(db.prepare(`${productSelect} WHERE id = ?`).get(result.lastInsertRowid));
+    res.status(201).json(db.prepare(`${productSelect} AND id = ?`).get(result.lastInsertRowid));
   } catch (error) { res.status(400).json({ error: error.code === 'SQLITE_CONSTRAINT_UNIQUE' ? 'That SKU already exists.' : 'Could not save the product.' }); }
 });
 
@@ -254,7 +256,7 @@ app.put('/api/products/:id', (req, res) => {
   try {
     const result = db.prepare('UPDATE products SET name = ?, category = ?, sku = ?, price = ?, stock = ?, reorder_level = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(String(name).trim(), String(category || 'Crackers').trim(), String(sku).trim().toUpperCase(), Number(price), Number(stock), Math.max(30, Number(reorderLevel) || 30), Number(req.params.id));
     if (!result.changes) return res.status(404).json({ error: 'Product not found.' });
-    res.json(db.prepare(`${productSelect} WHERE id = ?`).get(req.params.id));
+    res.json(db.prepare(`${productSelect} AND id = ?`).get(req.params.id));
   } catch (error) { res.status(400).json({ error: error.code === 'SQLITE_CONSTRAINT_UNIQUE' ? 'That SKU already exists.' : 'Could not update the product.' }); }
 });
 
