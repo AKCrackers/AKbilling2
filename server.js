@@ -207,6 +207,7 @@ db.prepare('UPDATE products SET name = ?, category = ?, price = ? WHERE sku = ?'
 db.prepare("UPDATE products SET active = 0 WHERE sku IN ('FP-001', 'SP-012', 'SW-1000', 'CH-002', 'CS-003', 'RK-005')").run();
 db.prepare("UPDATE products SET active = 0 WHERE sku IN ('PDF-029', 'PDF-028', 'PDF-046', 'SW-1000', 'PDF-058', 'PDF-118')").run();
 db.prepare("UPDATE products SET active = 1 WHERE sku LIKE 'PDF-%'").run();
+db.prepare("UPDATE products SET active = 0 WHERE sku NOT LIKE 'PDF-%'").run();
 const starterRefill = db.prepare('SELECT value FROM app_meta WHERE key = ?').get('starter_stock_100_initialized');
 if (!starterRefill) {
   db.exec('UPDATE products SET stock = 100, updated_at = CURRENT_TIMESTAMP');
