@@ -2,10 +2,18 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { DatabaseSync } = require('node:sqlite');
+const QRCode = require('qrcode');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
+const shopDetails = {
+  name: 'AK Crackers',
+  address: 'Near ring road, Sivakasi to Virudhunagar Main Road, Thiruthangal',
+  phone: '9585677106',
+  upiId: 'thiruselvam2429@oksbi',
+  locationUrl: 'https://maps.app.goo.gl/r2rTwtd9Rhy25oK79?g_st=ac'
+};
 fs.mkdirSync(dataDir, { recursive: true });
 const db = new DatabaseSync(path.join(dataDir, 'billing.sqlite'));
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
@@ -205,6 +213,11 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/price-list', (req, res) => res.sendFile(path.join(__dirname, 'price-list.pdf')));
 app.get('/api/health', (req, res) => res.json({ status: 'ok', dataDir, database: path.join(dataDir, 'billing.sqlite') }));
+app.get('/api/qr/:type', async (req, res) => {
+  const value = req.params.type === 'location' ? shopDetails.locationUrl : `upi://pay?pa=${encodeURIComponent(shopDetails.upiId)}&pn=${encodeURIComponent(shopDetails.name)}&cu=INR`;
+  try { res.type('png').send(await QRCode.toBuffer(value, { width: 240, margin: 1, errorCorrectionLevel: 'M' })); }
+  catch (error) { res.status(500).json({ error: 'Could not create QR code.' }); }
+});
 const productSelect = 'SELECT id, name, category, sku, price, stock, reorder_level AS reorderLevel, updated_at AS updatedAt FROM products';
 
 app.get('/api/dashboard', (req, res) => {
